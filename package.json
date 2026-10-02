@@ -7,7 +7,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:seed": "tsx db/seed.ts",
+    "db:seed": "tsx --env-file=.env.local db/seed.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -15,7 +15,7 @@
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
     "@neondatabase/serverless": "^1.0.0",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.3",
     "next": "^15.0.0",
     "next-auth": "^5.0.0-beta.32",
     "react": "^19.0.0",
@@ -26,7 +26,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "drizzle-kit": "^0.30.0",
+    "drizzle-kit": "^0.31.11",
     "tsx": "^4.19.0",
     "typescript": "^5.7.2",
     "vitest": "^3.2.0"

@@ -7,7 +7,7 @@ const envSchema = z.object({
   AUTH_GOOGLE_SECRET: z.string().min(1).optional(),
   MAILGUN_API_KEY: z.string().min(1).optional(),
   MAILGUN_DOMAIN: z.string().min(1).optional(),
-  MAILGUN_FROM_EMAIL: z.string().email().optional(),
+  MAILGUN_FROM: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 

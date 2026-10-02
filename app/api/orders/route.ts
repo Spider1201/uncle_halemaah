@@ -3,10 +3,16 @@ import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { orderItems, orders, services } from "@/db/schema";
+import { sendOrderConfirmationEmail } from "@/lib/email/mailgun";
 import { createOrderPostHandler } from "@/server/orders/create-order-handler";
 
 export const POST = createOrderPostHandler({
-  getUserId: async () => (await auth())?.user?.id ?? null,
+  getIdentity: async () => {
+    const session = await auth();
+    const user = session?.user;
+    if (!user?.id) return null;
+    return { userId: user.id, email: user.email ?? null, name: user.name ?? null };
+  },
   getActiveServices: async (slugs) => db
     .select({
       id: services.id,
@@ -23,4 +29,30 @@ export const POST = createOrderPostHandler({
       db.insert(orderItems).values(items),
     ]);
   },
+  getSavedOrder: async (orderId, userId) => {
+    const [savedOrder] = await db.select().from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+      .limit(1);
+    if (!savedOrder) return null;
+
+    const savedItems = await db.select().from(orderItems)
+      .where(eq(orderItems.orderId, savedOrder.id));
+    return {
+      orderNumber: savedOrder.orderNumber,
+      fulfillmentType: savedOrder.fulfillmentType,
+      preferredDate: savedOrder.preferredDate,
+      customerPhone: savedOrder.customerPhone,
+      deliveryAddress: savedOrder.deliveryAddress,
+      customerNote: savedOrder.customerNote,
+      totalKobo: savedOrder.totalKobo,
+      items: savedItems.map((item) => ({
+        serviceName: item.serviceName,
+        unitLabel: item.unitLabel,
+        unitPriceKobo: item.unitPriceKobo,
+        quantity: item.quantity,
+        lineTotalKobo: item.lineTotalKobo,
+      })),
+    };
+  },
+  sendConfirmationEmail: sendOrderConfirmationEmail,
 });

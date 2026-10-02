@@ -30,6 +30,40 @@ The initial storefront catalog is implemented; the remaining product flows are s
 
 Update this section at the end of every session. The latest session should be at the top.
 
+### Session: 2026-10-02 (Mailgun confirmations)
+
+- Status: Order confirmations are sent through Mailgun after successful persistence; mail failures do not fail checkout.
+- Completed:
+  - Added HTML and plain-text order confirmation content with escaped saved customer/order fields and Naira item/total formatting.
+  - The API obtains recipient name/email from the Auth.js session, reloads the saved order using both order ID and authenticated user ID, loads saved order-item snapshots, and only then attempts Mailgun delivery.
+  - Mailgun reads `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `MAILGUN_FROM` from the process environment. Failures log only a fixed message and order ID; provider errors and secrets are not logged.
+  - Updated `.env.example` and Zod env schema to use `MAILGUN_FROM` (not `MAILGUN_FROM_EMAIL`).
+  - Added a mocked-Mailgun payload test and a checkout regression test proving HTTP success after email failure.
+- Test a real send:
+  - Set `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, and `MAILGUN_FROM` in the ignored `.env.local`. Use a verified Mailgun domain and a sender address on that domain. If the domain is still in Mailgun sandbox mode, authorize the Google account's recipient email in Mailgun first.
+  - Ensure database migrations have been applied and services seeded, then sign in with Google and submit a checkout using that same Google account.
+  - Confirm the order succeeds in the UI and check the recipient inbox (including spam) and Mailgun logs. Never paste or print the API key.
+- Validation:
+  - `npm test -- --run` passed: 6 files, 24 tests.
+  - `npm run build` passed with a temporary process-only `MAILGUN_FROM` value; no environment file values were printed or persisted.
+  - No live Mailgun request was made in this session.
+- Next step:
+  - Replace any old local `MAILGUN_FROM_EMAIL` setting with `MAILGUN_FROM`, then test delivery with a verified/authorized recipient.
+
+### Session: 2026-10-02 (My Orders details)
+
+- Status: My Orders shows persisted order and item details for the authenticated owner.
+- Completed:
+  - Loaded order-item snapshots only for the authenticated user's order IDs.
+  - Displayed service names, quantities, saved unit prices and line totals, order total, pickup/delivery type, preferred date, phone, status, order reference, and placement date.
+  - Orders remain in Neon independently of the browser cart or Auth.js login session; logging out and back in with the same Google account retrieves the same rows by user ID.
+- Validation:
+  - `npm test -- --run` passed: 5 files, 21 tests.
+  - `npm run build` passed with temporary process-only `MAILGUN_FROM=Uncle Halemaah <preview@example.test>`; no environment files were read or edited.
+  - My Orders was not tested against live customer data in this run.
+- Next step:
+  - Verify the page against the configured Neon database after migrations and order seeding/submission.
+
 ### Session: 2026-10-01 (Google authentication)
 
 - Status: Google sign-in/sign-out and the protected orders entry page are implemented; Google OAuth credentials and a database migration still need to be configured/applied locally.

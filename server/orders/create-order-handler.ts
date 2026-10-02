@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
+import type { ConfirmationOrder } from "@/lib/email/mailgun";
+
 const MAX_POSTGRES_INTEGER = 2_147_483_647;
 
 function isCalendarDate(value: string): boolean {
@@ -74,9 +76,11 @@ export type NewOrderItemRecord = {
 };
 
 type CreateOrderDependencies = {
-  getUserId: () => Promise<string | null>;
+  getIdentity: () => Promise<{ userId: string; email: string | null; name: string | null } | null>;
   getActiveServices: (slugs: string[]) => Promise<OrderServicePrice[]>;
   saveOrder: (order: NewOrderRecord, items: NewOrderItemRecord[]) => Promise<void>;
+  getSavedOrder: (orderId: string, userId: string) => Promise<ConfirmationOrder | null>;
+  sendConfirmationEmail: (message: { to: string; customerName: string | null; order: ConfirmationOrder }) => Promise<void>;
   getToday?: () => string;
   createId?: () => string;
   createOrderNumber?: () => string;
@@ -88,8 +92,9 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
   return async function POST(request: Request): Promise<Response> {
-    const userId = await dependencies.getUserId();
-    if (!userId) return jsonError("Sign in is required to place an order.", 401);
+    const identity = await dependencies.getIdentity();
+    if (!identity) return jsonError("Sign in is required to place an order.", 401);
+    const { userId } = identity;
 
     let body: unknown;
     try {
@@ -154,6 +159,24 @@ export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
     const orderItems = lineItems.map((item) => ({ ...item, orderId }));
 
     await dependencies.saveOrder(order, orderItems);
+
+    if (identity.email) {
+      try {
+        const savedOrder = await dependencies.getSavedOrder(orderId, userId);
+        if (!savedOrder) {
+          console.error("Order confirmation email skipped: saved order could not be loaded for its owner.", { orderId });
+        } else {
+          await dependencies.sendConfirmationEmail({
+            to: identity.email,
+            customerName: identity.name,
+            order: savedOrder,
+          });
+        }
+      } catch {
+        console.error("Order confirmation email failed after the order was saved.", { orderId });
+      }
+    }
+
     return Response.json({
       orderNumber: order.orderNumber,
       status: order.status,

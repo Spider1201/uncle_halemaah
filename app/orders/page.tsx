@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { signOutCurrentUser } from "@/app/auth-actions";
 import { db } from "@/db";
-import { orders } from "@/db/schema";
+import { orderItems, orders } from "@/db/schema";
 import { formatNaira } from "@/lib/catalog";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 
 export default async function OrdersPage() {
   const session = await auth();
@@ -18,6 +18,17 @@ export default async function OrdersPage() {
   const customerOrders = await db.select().from(orders)
     .where(eq(orders.userId, session.user.id))
     .orderBy(desc(orders.createdAt));
+  const customerOrderIds = customerOrders.map((order) => order.id);
+  const customerOrderItems = customerOrderIds.length
+    ? await db.select().from(orderItems).where(inArray(orderItems.orderId, customerOrderIds))
+    : [];
+  const itemsByOrderId = new Map<string, typeof customerOrderItems>();
+
+  for (const item of customerOrderItems) {
+    const orderItemsForOrder = itemsByOrderId.get(item.orderId) ?? [];
+    orderItemsForOrder.push(item);
+    itemsByOrderId.set(item.orderId, orderItemsForOrder);
+  }
 
   return (
     <main className="orders-shell">
@@ -43,19 +54,62 @@ export default async function OrdersPage() {
         ) : (
           <div className="order-list">
             {customerOrders.map((order) => (
-              <article className="order-row" key={order.id}>
-                <div>
-                  <p className="empty-kicker">{order.orderNumber}</p>
-                  <h2>{order.fulfillmentType === "pickup" ? "Shop pickup" : "Delivery"}</h2>
-                  <p>Preferred date: {order.preferredDate}</p>
+              <article className="order-card" key={order.id}>
+                <header className="order-card-header">
+                  <div>
+                    <p className="empty-kicker">{order.orderNumber}</p>
+                    <time dateTime={order.createdAt.toISOString()}>
+                      Placed {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium" }).format(order.createdAt)}
+                    </time>
+                  </div>
+                  <span className={`status-label status-${order.status}`}>
+                    {order.status.replaceAll("_", " ")}
+                  </span>
+                </header>
+
+                <ul className="order-items-list" aria-label={`Items in order ${order.orderNumber}`}>
+                  {(itemsByOrderId.get(order.id) ?? []).map((item) => (
+                    <li className="order-item-row" key={item.id}>
+                      <div>
+                        <strong>{item.serviceName}</strong>
+                        <span>{item.quantity} × {formatNaira(item.unitPriceKobo / 100)} / {item.unitLabel.toLowerCase()}</span>
+                      </div>
+                      <strong>{formatNaira(item.lineTotalKobo / 100)}</strong>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="order-details-grid">
+                  <div>
+                    <span className="order-detail-label">Collection</span>
+                    <strong>{order.fulfillmentType === "pickup" ? "Shop pickup" : "Delivery"}</strong>
+                  </div>
+                  <div>
+                    <span className="order-detail-label">Preferred date</span>
+                    <strong>{order.preferredDate}</strong>
+                  </div>
+                  <div>
+                    <span className="order-detail-label">Phone</span>
+                    <strong>{order.customerPhone}</strong>
+                  </div>
+                  {order.fulfillmentType === "delivery" && order.deliveryAddress && (
+                    <div className="order-address">
+                      <span className="order-detail-label">Delivery address</span>
+                      <strong>{order.deliveryAddress}</strong>
+                    </div>
+                  )}
+                  {order.customerNote && (
+                    <div className="order-address">
+                      <span className="order-detail-label">Note</span>
+                      <strong>{order.customerNote}</strong>
+                    </div>
+                  )}
                 </div>
-                <div className="order-row-summary">
-                  <span className={`status-label status-${order.status}`}>{order.status.replaceAll("_", " ")}</span>
+
+                <footer className="order-card-total">
+                  <span>Total</span>
                   <strong>{formatNaira(order.totalKobo / 100)}</strong>
-                  <time dateTime={order.createdAt.toISOString()}>
-                    {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium" }).format(order.createdAt)}
-                  </time>
-                </div>
+                </footer>
               </article>
             ))}
           </div>

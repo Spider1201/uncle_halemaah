@@ -12,15 +12,38 @@ const servicePrices: OrderServicePrice[] = [
   { id: "service-suit", slug: "suit-pressing", name: "Suit Pressing", unitLabel: "Per set", priceKobo: 450000 },
 ];
 
-function makeDependencies(overrides: { userId?: string | null; services?: OrderServicePrice[] } = {}) {
+function makeDependencies(overrides: {
+  userId?: string | null;
+  services?: OrderServicePrice[];
+  sendConfirmationEmail?: (message: { to: string; customerName: string | null; order: import("../lib/email/mailgun").ConfirmationOrder }) => Promise<void>;
+} = {}) {
   const savedOrders: Array<{ order: NewOrderRecord; items: NewOrderItemRecord[] }> = [];
   const dependencies = {
-    getUserId: vi.fn(async () => overrides.userId === undefined ? "user-123" : overrides.userId),
+    getIdentity: vi.fn(async () => overrides.userId === null
+      ? null
+      : { userId: overrides.userId ?? "user-123", email: "google-customer@example.com", name: "Google Customer" }),
     getActiveServices: vi.fn(async (slugs: string[]) => (overrides.services ?? servicePrices)
       .filter((service) => slugs.includes(service.slug))),
     saveOrder: vi.fn(async (order: NewOrderRecord, items: NewOrderItemRecord[]) => {
       savedOrders.push({ order, items });
     }),
+    getSavedOrder: vi.fn(async (orderId: string, userId: string) => {
+      const saved = savedOrders.find(({ order }) => order.id === orderId && order.userId === userId);
+      if (!saved) return null;
+      return {
+        orderNumber: saved.order.orderNumber,
+        fulfillmentType: saved.order.fulfillmentType,
+        preferredDate: saved.order.preferredDate,
+        customerPhone: saved.order.customerPhone,
+        deliveryAddress: saved.order.deliveryAddress,
+        customerNote: saved.order.customerNote,
+        totalKobo: saved.order.totalKobo,
+        items: saved.items.map(({ serviceName, unitLabel, unitPriceKobo, quantity, lineTotalKobo }) => ({
+          serviceName, unitLabel, unitPriceKobo, quantity, lineTotalKobo,
+        })),
+      };
+    }),
+    sendConfirmationEmail: vi.fn(overrides.sendConfirmationEmail ?? (async () => {})),
     getToday: () => "2026-10-02",
     createId: vi.fn().mockReturnValueOnce("item-123").mockReturnValueOnce("order-123"),
     createOrderNumber: () => "UH-TEST12345",
@@ -45,7 +68,7 @@ const validPickupOrder = {
 
 describe("POST /api/orders", () => {
   it("creates an owned order using current database prices and immutable item snapshots", async () => {
-    const { handler, savedOrders } = makeDependencies();
+    const { handler, savedOrders, dependencies } = makeDependencies();
 
     const response = await handler(post(validPickupOrder));
     const body = await response.json();
@@ -61,6 +84,16 @@ describe("POST /api/orders", () => {
       lineTotalKobo: 360000,
       orderId: "order-123",
     });
+    expect(dependencies.getSavedOrder).toHaveBeenCalledWith("order-123", "user-123");
+    expect(dependencies.sendConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({
+      to: "google-customer@example.com",
+      customerName: "Google Customer",
+      order: expect.objectContaining({
+        orderNumber: "UH-TEST12345",
+        totalKobo: 360000,
+        items: [expect.objectContaining({ unitPriceKobo: 180000, quantity: 2 })],
+      }),
+    }));
   });
 
   it("rejects unauthenticated requests", async () => {
@@ -70,6 +103,34 @@ describe("POST /api/orders", () => {
 
     expect(response.status).toBe(401);
     expect(dependencies.getActiveServices).not.toHaveBeenCalled();
+  });
+
+  it("rejects request-supplied identity and totals", async () => {
+    const { handler, dependencies } = makeDependencies();
+
+    const response = await handler(post({ ...validPickupOrder, email: "attacker@example.com", totalKobo: 1 }));
+
+    expect(response.status).toBe(400);
+    expect(dependencies.saveOrder).not.toHaveBeenCalled();
+  });
+
+  it("keeps checkout successful and logs no error details when confirmation email fails", async () => {
+    const emailSender = vi.fn(async () => { throw new Error("api key should not be logged"); });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { handler, dependencies, savedOrders } = makeDependencies({ sendConfirmationEmail: emailSender });
+
+    const response = await handler(post(validPickupOrder));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.orderNumber).toBe("UH-TEST12345");
+    expect(savedOrders).toHaveLength(1);
+    expect(dependencies.getSavedOrder).toHaveBeenCalledWith("order-123", "user-123");
+    expect(emailSender.mock.invocationCallOrder[0]).toBeGreaterThan(dependencies.saveOrder.mock.invocationCallOrder[0]);
+    expect(log).toHaveBeenCalledWith("Order confirmation email failed after the order was saved.", { orderId: "order-123" });
+    expect(JSON.stringify(log.mock.calls)).not.toContain("api key should not be logged");
+
+    log.mockRestore();
   });
 
   it.each([
