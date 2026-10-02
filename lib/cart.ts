@@ -12,7 +12,7 @@ export function addCartItem(items: CartItem[], serviceSlug: string): CartItem[] 
 }
 
 export function setCartQuantity(items: CartItem[], serviceSlug: string, quantity: number): CartItem[] {
-  if (quantity <= 0) return removeCartItem(items, serviceSlug);
+  if (quantity < 1) return removeCartItem(items, serviceSlug);
   return items.map((item) => item.serviceSlug === serviceSlug
     ? { ...item, quantity: Math.min(Math.floor(quantity), 99) }
     : item);

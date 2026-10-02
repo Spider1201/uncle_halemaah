@@ -21,6 +21,17 @@ describe("cart operations", () => {
     expect(removeCartItem(items, "shirt-care")).toEqual([]);
   });
 
+  it("steps down one at a time and caps the quantity at 99", () => {
+    const items = [{ serviceSlug: "shirt-care", quantity: 3 }];
+
+    expect(setCartQuantity(items, "shirt-care", 2)).toEqual([{ serviceSlug: "shirt-care", quantity: 2 }]);
+    expect(setCartQuantity(items, "shirt-care", 100)).toEqual([{ serviceSlug: "shirt-care", quantity: 99 }]);
+  });
+
+  it("does not create an item when decreasing a missing service to zero", () => {
+    expect(setCartQuantity([], "shirt-care", 0)).toEqual([]);
+  });
+
   it("calculates subtotals from catalog values and ignores stale cart slugs", () => {
     expect(calculateCartSubtotal([
       { serviceSlug: "shirt-care", quantity: 2 },

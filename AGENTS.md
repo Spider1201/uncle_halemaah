@@ -93,6 +93,17 @@ Use this layout unless a more specific structure is already established by the p
 - Keep business logic in `server/` or `lib/` and avoid mixing it directly into UI components
 - Do not add hidden “magic” values; prefer domain constants and typed helpers
 
+## Visual design system
+
+- Palette: white/off-white surfaces, deep navy primary (`#18334b`), soft blue accent (`#e7f0f6`), and neutral grey text/borders. Avoid gradients and heavy shadows.
+- Typography: use the shared Inter sans-serif font loaded with `next/font`; use the CSS type scale (`--text-xs` through `--text-2xl`) with generous line-height.
+- Spacing: use the shared 4/8px-based spacing tokens (`--space-1` through `--space-8`), consistent page widths, and generous whitespace.
+- Buttons: use shared primary, secondary, and ghost treatments; preserve semantic button/link behavior and visible keyboard focus.
+- Surfaces: use subtle borders and modest rounded corners for repeated service/order items and genuinely framed forms; avoid nested cards and heavy shadows.
+- Inputs: keep labels associated with controls and show a high-contrast focus ring.
+- Status: use the shared order status badge styles and keep status text visible without relying on color alone.
+- Layouts are mobile-first and must remain usable without horizontal scrolling at narrow viewport widths.
+
 ## Code and API rules
 
 ### 1) Validate all API input with Zod

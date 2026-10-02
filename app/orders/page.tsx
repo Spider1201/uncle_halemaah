@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { signOutCurrentUser } from "@/app/auth-actions";
+import { SiteHeader } from "@/components/ui/SiteHeader";
 import { db } from "@/db";
 import { orderItems, orders } from "@/db/schema";
 import { formatNaira } from "@/lib/catalog";
@@ -32,16 +32,9 @@ export default async function OrdersPage() {
 
   return (
     <main className="orders-shell">
-      <header className="orders-header">
-        <Link href="/" className="auth-brand">Uncle Halemaah</Link>
-        <div className="account-controls">
-          <span className="account-name">{session.user.name ?? session.user.email}</span>
-          <form action={signOutCurrentUser}>
-            <button type="submit" className="quiet-button">Sign out</button>
-          </form>
-        </div>
-      </header>
+      <SiteHeader signedIn />
       <section className="orders-content" aria-labelledby="orders-title">
+        <Link href="/" className="back-link"><span aria-hidden="true">←</span> Back to services</Link>
         <p className="section-label">Account</p>
         <h1 id="orders-title">Your orders</h1>
         {customerOrders.length === 0 ? (

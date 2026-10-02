@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { signOutCurrentUser } from "@/app/auth-actions";
 import { ServiceCatalog } from "@/components/cart/ServiceCatalog";
-import { CartLink } from "@/components/cart/CartLink";
+import { SiteFooter } from "@/components/ui/SiteFooter";
+import { SiteHeader } from "@/components/ui/SiteHeader";
 import { loadServiceCatalog } from "@/lib/catalog";
 import { getActiveServiceCatalogRows } from "@/server/services/get-active-catalog";
 
@@ -14,46 +14,23 @@ export default async function HomePage() {
 
   return (
     <main className="catalog-shell">
-      <nav className="catalog-nav" aria-label="Account navigation">
-        <Link href="/" className="auth-brand">Uncle Halemaah</Link>
-        <div className="account-controls">
-          <CartLink />
-          <Link href="/orders" className="quiet-link">My orders</Link>
-          {session?.user ? (
-            <form action={signOutCurrentUser}>
-              <button type="submit" className="quiet-button">Sign out</button>
-            </form>
-          ) : (
-            <Link href="/signin?callbackUrl=%2Forders" className="quiet-button">Sign in</Link>
-          )}
-        </div>
-      </nav>
+      <SiteHeader signedIn={Boolean(session?.user)} />
       <section className="hero-card">
         <div className="hero-copy">
-          <p className="eyebrow">Fresh finishes, trusted care</p>
-          <h1>Uncle Halemaah</h1>
+          <h1>Clothes cared for, life made easier.</h1>
           <p className="subtitle">
-            Expert clothing care for busy families, professionals, and special events.
+            Professional cleaning and careful finishing for everything you wear.
           </p>
-        </div>
-        <div className="hero-stats" aria-label="Service highlights">
-          <div>
-            <strong>{catalog.services.length}</strong>
-            <span>Service options</span>
-          </div>
-          <div>
-            <strong>NGN</strong>
-            <span>Transparent pricing</span>
-          </div>
+          <Link href="#services" className="primary-button hero-cta">Browse services</Link>
         </div>
       </section>
 
-      <section className="catalog-header">
+      <section className="catalog-header" id="services">
         <div>
-          <p className="section-label">Our services</p>
-          <h2>Premium care for every wardrobe</h2>
+          <p className="section-label">Services</p>
+          <h2>Choose a service</h2>
         </div>
-        <Link href="/checkout" className="primary-button link-button">Go to cart</Link>
+        <Link href="/cart" className="quiet-link">View cart</Link>
       </section>
 
       {catalog.error ? (
@@ -63,6 +40,7 @@ export default async function HomePage() {
       ) : (
         <p className="catalog-empty">No services are available right now. Please check back shortly.</p>
       )}
+      <SiteFooter />
     </main>
   );
 }

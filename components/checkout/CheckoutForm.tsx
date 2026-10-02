@@ -19,7 +19,7 @@ export function CheckoutForm({
   services: ServiceItem[];
   catalogError: string | null;
 }) {
-  const { items, loaded, setQuantity, remove, clear } = useCart();
+  const { items, loaded, clear } = useCart();
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("pickup");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -100,25 +100,13 @@ export function CheckoutForm({
                 <h3>{service.name}</h3>
                 <p>{formatNaira(service.price)} / {service.unit.toLowerCase()}</p>
               </div>
-              <label className="quantity-field">
-                <span>Quantity</span>
-                <input
-                  aria-label={`${service.name} quantity`}
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={item.quantity}
-                  onChange={(event) => setQuantity(service.slug, Number(event.target.value))}
-                />
-              </label>
+              <span className="checkout-item-quantity">Qty {item.quantity}</span>
               <strong className="line-total">{formatNaira(service.price * item.quantity)}</strong>
-              <button type="button" className="remove-button" onClick={() => remove(service.slug)}>
-                Remove
-              </button>
             </article>
           );
         })}
         <div className="cart-subtotal"><span>Subtotal</span><strong>{formatNaira(subtotal)}</strong></div>
+        <Link href="/cart" className="quiet-link checkout-edit-cart">Edit cart</Link>
       </section>
 
       <section className="checkout-details" aria-labelledby="checkout-details-title">

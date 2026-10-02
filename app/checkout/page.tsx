@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
+import { SiteHeader } from "@/components/ui/SiteHeader";
 import { loadServiceCatalog } from "@/lib/catalog";
 import { getActiveServiceCatalogRows } from "@/server/services/get-active-catalog";
 
@@ -15,11 +16,9 @@ export default async function CheckoutPage() {
 
   return (
     <main className="checkout-shell">
-      <header className="orders-header">
-        <Link href="/" className="auth-brand">Uncle Halemaah</Link>
-        <Link href="/orders" className="quiet-link">My orders</Link>
-      </header>
+      <SiteHeader signedIn />
       <div className="checkout-heading">
+        <Link href="/cart" className="back-link"><span aria-hidden="true">←</span> Back to cart</Link>
         <p className="section-label">Secure checkout</p>
         <h1>Review your order</h1>
         <p>Signed in as {session.user.name ?? session.user.email}</p>

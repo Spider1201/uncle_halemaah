@@ -82,51 +82,67 @@ function buildPlainText({ order }: OrderConfirmationEmail): string {
 function buildHtml({ order }: OrderConfirmationEmail): string {
   const itemRows = order.items.map((item) => `
     <tr>
-      <td style="padding:12px 8px;border-bottom:1px solid #e7e9e4;color:#20382d;">
+      <td valign="top" style="width:68%;padding:12px 8px;border-bottom:1px solid #e7e9e4;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">
         <strong>${escapeHtml(item.serviceName)}</strong><br>
-        <span style="color:#64716b;font-size:13px;">${item.quantity} x ${escapeHtml(formatNaira(item.unitPriceKobo / 100))} / ${escapeHtml(item.unitLabel.toLowerCase())}</span>
+        <span style="color:#64716b;font-size:13px;word-break:break-word;overflow-wrap:anywhere;">${item.quantity} x ${escapeHtml(formatNaira(item.unitPriceKobo / 100))} / ${escapeHtml(item.unitLabel.toLowerCase())}</span>
       </td>
-      <td style="padding:12px 8px;border-bottom:1px solid #e7e9e4;text-align:right;white-space:nowrap;color:#173d2f;">
+      <td valign="top" style="width:32%;padding:12px 8px;border-bottom:1px solid #e7e9e4;text-align:right;color:#173d2f;word-break:break-word;overflow-wrap:anywhere;">
         ${escapeHtml(formatNaira(item.lineTotalKobo / 100))}
       </td>
     </tr>`).join("");
   const fulfillment = order.fulfillmentType === "pickup" ? "Shop pickup" : "Delivery";
   const extraDetails = [
-    ...(order.deliveryAddress ? [`<tr><td style="padding:7px 0;color:#64716b;">Delivery address</td><td style="padding:7px 0;text-align:right;color:#20382d;">${escapeHtml(order.deliveryAddress)}</td></tr>`] : []),
-    ...(order.customerNote ? [`<tr><td style="padding:7px 0;color:#64716b;">Note</td><td style="padding:7px 0;text-align:right;color:#20382d;">${escapeHtml(order.customerNote)}</td></tr>`] : []),
+    ...(order.deliveryAddress ? [`<tr><td valign="top" style="width:35%;padding:7px 0;color:#64716b;word-break:break-word;overflow-wrap:anywhere;">Delivery address</td><td valign="top" style="width:65%;padding:7px 0;text-align:right;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(order.deliveryAddress)}</td></tr>`] : []),
+    ...(order.customerNote ? [`<tr><td valign="top" style="width:35%;padding:7px 0;color:#64716b;word-break:break-word;overflow-wrap:anywhere;">Note</td><td valign="top" style="width:65%;padding:7px 0;text-align:right;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(order.customerNote)}</td></tr>`] : []),
   ].join("");
 
   return `<!doctype html>
 <html lang="en">
   <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-  <body style="margin:0;padding:24px 12px;background:#f4efe9;font-family:Arial,Helvetica,sans-serif;color:#20382d;">
-    <div style="max-width:600px;margin:0 auto;background:#fffdf9;border:1px solid #e5e5df;border-radius:12px;overflow:hidden;">
-      <header style="padding:24px;background:#173d2f;color:#fff;">
-        <p style="margin:0 0 8px;color:#f6e3b3;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">Order request received</p>
-        <h1 style="margin:0;font-size:24px;line-height:1.25;">Uncle Halemaah</h1>
-      </header>
-      <main style="padding:24px 20px;">
-        <p style="margin:0 0 8px;">Hello ${escapeHtml(order.customerName)},</p>
-        <p style="margin:0 0 20px;color:#64716b;line-height:1.6;">Thanks for choosing us. We have received your request and the shop will review your preferred date.</p>
-        <p style="margin:0 0 12px;font-weight:bold;">Order ${escapeHtml(order.orderNumber)}</p>
-        <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px;">
-          <thead><tr><th style="padding:8px;text-align:left;border-bottom:2px solid #173d2f;">Item</th><th style="padding:8px;text-align:right;border-bottom:2px solid #173d2f;">Amount</th></tr></thead>
-          <tbody>${itemRows}</tbody>
-        </table>
-        <p style="display:flex;justify-content:space-between;gap:12px;margin:0;padding:16px 8px;border-bottom:1px solid #e7e9e4;font-weight:bold;">
-          <span>Total</span><span>${escapeHtml(formatNaira(order.totalKobo / 100))}</span>
-        </p>
-        <h2 style="margin:24px 0 8px;font-size:16px;">Collection details</h2>
-        <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr><td style="padding:7px 0;color:#64716b;">Fulfillment</td><td style="padding:7px 0;text-align:right;color:#20382d;">${fulfillment}</td></tr>
-          <tr><td style="padding:7px 0;color:#64716b;">Preferred date</td><td style="padding:7px 0;text-align:right;color:#20382d;">${escapeHtml(order.preferredDate)}</td></tr>
-          <tr><td style="padding:7px 0;color:#64716b;">Phone</td><td style="padding:7px 0;text-align:right;color:#20382d;">${escapeHtml(order.customerPhone)}</td></tr>
-          ${extraDetails}
-        </table>
-        <p style="margin:20px 0 0;padding:12px;background:#f8f0e5;border-radius:8px;color:#52615a;font-size:13px;line-height:1.5;">Your preferred date is not confirmed until the shop reviews your request. No online payment has been collected.</p>
-        <p style="margin:20px 0 0;line-height:1.6;">Thank you for choosing Uncle Halemaah. We look forward to caring for your clothes!</p>
-      </main>
-    </div>
+  <body style="width:100%;margin:0;padding:0;background-color:#f4efe9;font-family:Arial,Helvetica,sans-serif;color:#20382d;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background-color:#f4efe9;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;margin:0 auto;border:1px solid #e5e5df;border-collapse:separate;border-spacing:0;background-color:#fffdf9;">
+            <tr>
+              <td style="padding:24px;background-color:#173d2f;color:#ffffff;">
+                <p style="margin:0 0 8px;color:#f6e3b3;font-size:12px;font-weight:bold;text-transform:uppercase;">Order request received</p>
+                <h1 style="margin:0;font-size:24px;line-height:1.25;">Uncle Halemaah</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 20px;word-break:break-word;overflow-wrap:anywhere;">
+                <p style="margin:0 0 8px;">Hello ${escapeHtml(order.customerName)},</p>
+                <p style="margin:0 0 20px;color:#64716b;line-height:1.6;">Thanks for choosing us. We have received your request and the shop will review your preferred date.</p>
+                <p style="margin:0 0 12px;font-weight:bold;word-break:break-word;overflow-wrap:anywhere;">Order ${escapeHtml(order.orderNumber)}</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px;">
+                  <tr>
+                    <th align="left" width="68%" style="width:68%;padding:8px;border-bottom:2px solid #173d2f;">Item</th>
+                    <th align="right" width="32%" style="width:32%;padding:8px;border-bottom:2px solid #173d2f;">Amount</th>
+                  </tr>
+                  ${itemRows}
+                  <tr>
+                    <td style="padding:16px 8px;border-bottom:1px solid #e7e9e4;font-weight:bold;word-break:break-word;overflow-wrap:anywhere;">Total</td>
+                    <td align="right" style="padding:16px 8px;border-bottom:1px solid #e7e9e4;font-weight:bold;color:#173d2f;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(formatNaira(order.totalKobo / 100))}</td>
+                  </tr>
+                </table>
+                <h2 style="margin:24px 0 8px;font-size:16px;">Collection details</h2>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px;">
+                  <tr><td width="35%" style="width:35%;padding:7px 0;color:#64716b;word-break:break-word;overflow-wrap:anywhere;">Fulfillment</td><td width="65%" align="right" style="width:65%;padding:7px 0;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">${fulfillment}</td></tr>
+                  <tr><td width="35%" style="width:35%;padding:7px 0;color:#64716b;word-break:break-word;overflow-wrap:anywhere;">Preferred date</td><td width="65%" align="right" style="width:65%;padding:7px 0;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(order.preferredDate)}</td></tr>
+                  <tr><td width="35%" style="width:35%;padding:7px 0;color:#64716b;word-break:break-word;overflow-wrap:anywhere;">Phone</td><td width="65%" align="right" style="width:65%;padding:7px 0;color:#20382d;word-break:break-word;overflow-wrap:anywhere;">${escapeHtml(order.customerPhone)}</td></tr>
+                  ${extraDetails}
+                </table>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin-top:20px;border-collapse:collapse;background-color:#f8f0e5;">
+                  <tr><td style="padding:12px;color:#52615a;font-size:13px;line-height:1.5;word-break:break-word;overflow-wrap:anywhere;">Your preferred date is not confirmed until the shop reviews your request. No online payment has been collected.</td></tr>
+                </table>
+                <p style="margin:20px 0 0;line-height:1.6;word-break:break-word;overflow-wrap:anywhere;">Thank you for choosing Uncle Halemaah. We look forward to caring for your clothes!</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`;
 }

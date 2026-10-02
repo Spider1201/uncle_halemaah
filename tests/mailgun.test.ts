@@ -51,15 +51,40 @@ describe("sendOrderConfirmationEmail", () => {
     expect(url).toBe("https://api.eu.mailgun.net/v3/mg.example.test/messages");
     expect(request?.method).toBe("POST");
     const form = request?.body as FormData;
+    const html = String(form.get("html"));
+    const longValue = "LongUnbrokenServiceName".repeat(12);
     expect(form.get("from")).toBe("Uncle Halemaah <orders@example.test>");
     expect(form.get("to")).toBe("google-account@example.test");
     expect(form.get("subject")).toContain("UH-ORDER1234");
     expect(form.get("text")).toContain("Hello A Customer,");
     expect(form.get("text")).toContain("₦3,600");
     expect(form.get("text")).toContain("Delivery address: 12 Market Road");
-    expect(form.get("html")).toContain("<meta");
-    expect(form.get("html")).toContain("&lt;silk&gt;");
-    expect(form.get("html")).toContain("Hello A Customer,");
-    expect(form.get("html")).toContain("2026-10-05");
+    expect(form.get("text")).toContain("Please handle <silk> carefully");
+    expect(html).toContain("<meta");
+    expect(html).toContain("max-width:600px");
+    expect(html).toContain("width:100%");
+    expect(html).toContain("table-layout:fixed");
+    expect(html).toContain("word-break:break-word");
+    expect(html).toContain("overflow-wrap:anywhere");
+    expect(html).not.toContain("<div");
+    expect(html).not.toContain("display:flex");
+    expect(html).not.toContain("white-space:nowrap");
+    expect(html).toContain("&lt;silk&gt;");
+    expect(html).toContain("Hello A Customer,");
+    expect(html).toContain("2026-10-05");
+
+    const longTextMessage = {
+      to: "google-account@example.test",
+      order: {
+        ...savedOrder,
+        deliveryAddress: longValue,
+        items: [{ ...savedOrder.items[0], serviceName: longValue }],
+      },
+    };
+    await sendOrderConfirmationEmail(longTextMessage, mockedFetch);
+    const longTextHtml = String((mockedFetch.mock.calls[1][1]?.body as FormData).get("html"));
+    expect(longTextHtml).toContain(longValue);
+    expect(longTextHtml).toContain("table-layout:fixed");
+    expect(longTextHtml).toContain("overflow-wrap:anywhere");
   });
 });
