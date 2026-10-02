@@ -1,17 +1,17 @@
 "use client";
 
-import { SERVICE_CATALOG } from "@/lib/catalog";
+import type { ServiceItem } from "@/lib/catalog";
 import { useCart } from "@/components/cart/CartProvider";
 
-export function ServiceCatalog() {
+export function ServiceCatalog({ services }: { services: ServiceItem[] }) {
   const { add } = useCart();
 
   return (
     <section className="catalog-grid" aria-label="Service catalog">
-      {SERVICE_CATALOG.map((service) => (
-        <article key={service.id} className="service-card">
+      {services.map((service) => (
+        <article key={service.slug} className="service-card">
           <div className="service-card-top">
-            <span className="service-badge">{service.badge}</span>
+            {service.badge && <span className="service-badge">{service.badge}</span>}
             <span className="service-unit">{service.unit}</span>
           </div>
 
@@ -23,7 +23,7 @@ export function ServiceCatalog() {
               <span className="price-label">From</span>
               <strong>{new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(service.price)}</strong>
             </div>
-            <button type="button" className="add-button" onClick={() => add(service.id)}>
+            <button type="button" className="add-button" onClick={() => add(service.slug)}>
               Add
             </button>
           </div>

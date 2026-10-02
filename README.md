@@ -30,6 +30,27 @@ The initial storefront catalog is implemented; the remaining product flows are s
 
 Update this section at the end of every session. The latest session should be at the top.
 
+### Session: 2026-10-02 (checkout name, DB catalog, Mailgun region)
+
+- Status: Requested code changes are implemented; migrations must be applied and the database catalog seeded before DB-backed catalog and checkout can run against Neon.
+- Completed in requested order:
+  - Added required editable checkout full name, prefilled from the Google profile; Zod validates it and the order stores `customer_name` as a snapshot. My Orders and confirmation email display the saved name.
+  - Generated migration `0002_order-customer-name.sql`; existing orders are backfilled from the linked user's name, then email, before the column is made required.
+  - Replaced the static catalog UI source with active database service rows, sorted by `sort_order`. Checkout uses the same rows for display/subtotal, while the API reloads authoritative current prices. The seed list remains the source for initializing/upserting those database rows; DB query failures show a friendly message.
+  - Added nullable `services.badge` with migration `0003_service-catalog-badge.sql` for catalog labels.
+  - Added optional `MAILGUN_API_BASE_URL`, defaulting to `https://api.mailgun.net`; trailing slashes are normalized. `.env.example` documents the EU override as a commented line.
+  - Added tests for required name validation, saved-name snapshots/email greeting, database-row catalog mapping/failure fallback, and US/EU Mailgun endpoint selection.
+- Validation:
+  - Focused checkout/email tests passed: 13 tests.
+  - Focused catalog/cart/order tests passed: 19 tests.
+  - Focused Mailgun tests passed: 2 tests.
+  - Editor diagnostics reported no errors for changed TypeScript files.
+  - `npm test` passed: 6 files, 28 tests.
+  - Production build passed in an isolated temporary copy before the final env-schema/docs-only adjustments; run `npm run build` again after stopping any active dev server if a final local build is needed.
+  - Migrations have been generated but not applied to Neon; catalog seed was not run.
+- Next step:
+  - Run `npm run db:migrate`, then `npm run db:seed`, and verify with the configured Neon database and live provider settings.
+
 ### Session: 2026-10-02 (Mailgun confirmations)
 
 - Status: Order confirmations are sent through Mailgun after successful persistence; mail failures do not fail checkout.

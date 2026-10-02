@@ -3,9 +3,14 @@ import { auth } from "@/auth";
 import { signOutCurrentUser } from "@/app/auth-actions";
 import { ServiceCatalog } from "@/components/cart/ServiceCatalog";
 import { CartLink } from "@/components/cart/CartLink";
+import { loadServiceCatalog } from "@/lib/catalog";
+import { getActiveServiceCatalogRows } from "@/server/services/get-active-catalog";
 
 export default async function HomePage() {
-  const session = await auth();
+  const [session, catalog] = await Promise.all([
+    auth().catch(() => null),
+    loadServiceCatalog(getActiveServiceCatalogRows),
+  ]);
 
   return (
     <main className="catalog-shell">
@@ -33,7 +38,7 @@ export default async function HomePage() {
         </div>
         <div className="hero-stats" aria-label="Service highlights">
           <div>
-            <strong>7+</strong>
+            <strong>{catalog.services.length}</strong>
             <span>Service options</span>
           </div>
           <div>
@@ -51,7 +56,13 @@ export default async function HomePage() {
         <Link href="/checkout" className="primary-button link-button">Go to cart</Link>
       </section>
 
-      <ServiceCatalog />
+      {catalog.error ? (
+        <p className="catalog-error" role="alert">{catalog.error}</p>
+      ) : catalog.services.length > 0 ? (
+        <ServiceCatalog services={catalog.services} />
+      ) : (
+        <p className="catalog-empty">No services are available right now. Please check back shortly.</p>
+      )}
     </main>
   );
 }

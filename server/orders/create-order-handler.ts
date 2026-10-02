@@ -26,6 +26,7 @@ export const createOrderInputSchema = z.object({
     serviceSlug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
     quantity: z.number().int().min(1).max(99),
   }).strict()).min(1).max(50),
+  customerName: z.string().trim().min(2).max(120).refine((value) => !/[\u0000-\u001f\u007f]/.test(value)),
   fulfillmentType: z.enum(["pickup", "delivery"]),
   customerPhone: z.string().trim().min(7).max(30).regex(/^\+?[0-9\s()-]+$/),
   preferredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isCalendarDate),
@@ -53,6 +54,7 @@ export type NewOrderRecord = {
   id: string;
   orderNumber: string;
   userId: string;
+  customerName: string;
   status: "received";
   fulfillmentType: "pickup" | "delivery";
   customerPhone: string;
@@ -76,11 +78,11 @@ export type NewOrderItemRecord = {
 };
 
 type CreateOrderDependencies = {
-  getIdentity: () => Promise<{ userId: string; email: string | null; name: string | null } | null>;
+  getIdentity: () => Promise<{ userId: string; email: string | null } | null>;
   getActiveServices: (slugs: string[]) => Promise<OrderServicePrice[]>;
   saveOrder: (order: NewOrderRecord, items: NewOrderItemRecord[]) => Promise<void>;
   getSavedOrder: (orderId: string, userId: string) => Promise<ConfirmationOrder | null>;
-  sendConfirmationEmail: (message: { to: string; customerName: string | null; order: ConfirmationOrder }) => Promise<void>;
+  sendConfirmationEmail: (message: { to: string; order: ConfirmationOrder }) => Promise<void>;
   getToday?: () => string;
   createId?: () => string;
   createOrderNumber?: () => string;
@@ -146,6 +148,7 @@ export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
       id: orderId,
       orderNumber: (dependencies.createOrderNumber ?? (() => `UH-${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`))(),
       userId,
+      customerName: data.customerName,
       status: "received",
       fulfillmentType: data.fulfillmentType,
       customerPhone: data.customerPhone,
@@ -168,7 +171,6 @@ export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
         } else {
           await dependencies.sendConfirmationEmail({
             to: identity.email,
-            customerName: identity.name,
             order: savedOrder,
           });
         }

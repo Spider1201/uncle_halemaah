@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { addCartItem, calculateCartSubtotal, removeCartItem, setCartQuantity } from "../lib/cart";
 
 const services = [
-  { id: "shirt-care", price: 1800 },
-  { id: "suit-pressing", price: 4500 },
+  { slug: "shirt-care", price: 1800 },
+  { slug: "suit-pressing", price: 4500 },
 ];
 
 describe("cart operations", () => {

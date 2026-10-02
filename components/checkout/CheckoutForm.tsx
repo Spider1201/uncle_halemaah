@@ -4,19 +4,28 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 import { useCart } from "@/components/cart/CartProvider";
-import { SERVICE_CATALOG, formatNaira } from "@/lib/catalog";
+import type { ServiceItem } from "@/lib/catalog";
+import { formatNaira } from "@/lib/catalog";
 import { calculateCartSubtotal } from "@/lib/cart";
 
 type FulfillmentType = "pickup" | "delivery";
 
-export function CheckoutForm() {
+export function CheckoutForm({
+  initialCustomerName,
+  services,
+  catalogError,
+}: {
+  initialCustomerName: string;
+  services: ServiceItem[];
+  catalogError: string | null;
+}) {
   const { items, loaded, setQuantity, remove, clear } = useCart();
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("pickup");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const visibleItems = items.filter((item) => SERVICE_CATALOG.some((service) => service.id === item.serviceSlug));
-  const subtotal = calculateCartSubtotal(visibleItems, SERVICE_CATALOG);
+  const visibleItems = items.filter((item) => services.some((service) => service.slug === item.serviceSlug));
+  const subtotal = calculateCartSubtotal(visibleItems, services);
 
   async function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,6 +35,7 @@ export function CheckoutForm() {
     const formData = new FormData(event.currentTarget);
     const payload = {
       items: visibleItems,
+      customerName: formData.get("customerName"),
       fulfillmentType,
       customerPhone: formData.get("customerPhone"),
       preferredDate: formData.get("preferredDate"),
@@ -55,6 +65,8 @@ export function CheckoutForm() {
 
   if (!loaded) return <p className="checkout-loading">Loading your cart...</p>;
 
+  if (catalogError) return <p className="catalog-error" role="alert">{catalogError}</p>;
+
   if (orderNumber) {
     return (
       <section className="checkout-success" aria-live="polite">
@@ -81,9 +93,9 @@ export function CheckoutForm() {
       <section className="checkout-items" aria-labelledby="cart-items-title">
         <h2 id="cart-items-title">Your items</h2>
         {visibleItems.map((item) => {
-          const service = SERVICE_CATALOG.find((entry) => entry.id === item.serviceSlug)!;
+          const service = services.find((entry) => entry.slug === item.serviceSlug)!;
           return (
-            <article className="cart-row" key={service.id}>
+              <article className="cart-row" key={service.slug}>
               <div className="cart-row-copy">
                 <h3>{service.name}</h3>
                 <p>{formatNaira(service.price)} / {service.unit.toLowerCase()}</p>
@@ -96,11 +108,11 @@ export function CheckoutForm() {
                   min="1"
                   max="99"
                   value={item.quantity}
-                  onChange={(event) => setQuantity(service.id, Number(event.target.value))}
+                  onChange={(event) => setQuantity(service.slug, Number(event.target.value))}
                 />
               </label>
               <strong className="line-total">{formatNaira(service.price * item.quantity)}</strong>
-              <button type="button" className="remove-button" onClick={() => remove(service.id)}>
+              <button type="button" className="remove-button" onClick={() => remove(service.slug)}>
                 Remove
               </button>
             </article>
@@ -122,6 +134,10 @@ export function CheckoutForm() {
             Delivery
           </label>
         </fieldset>
+        <label className="form-field">
+          <span>Full name</span>
+          <input name="customerName" type="text" autoComplete="name" defaultValue={initialCustomerName} minLength={2} maxLength={120} required />
+        </label>
         <label className="form-field">
           <span>Phone number</span>
           <input name="customerPhone" type="tel" autoComplete="tel" placeholder="+234 801 234 5678" minLength={7} maxLength={30} pattern="\+?[0-9\s()\-]+" required />

@@ -67,6 +67,7 @@ export const services = pgTable("services", {
   description: text("description"),
   unitLabel: text("unit_label").notNull(),
   priceKobo: integer("price_kobo").notNull(),
+  badge: text("badge"),
   isActive: boolean("is_active").default(true).notNull(),
   sortOrder: integer("sort_order").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -79,6 +80,7 @@ export const orders = pgTable("orders", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id),
+  customerName: text("customer_name").notNull(),
   status: orderStatusEnum("status").default("received").notNull(),
   fulfillmentType: fulfillmentTypeEnum("fulfillment_type").notNull(),
   customerPhone: text("customer_phone").notNull(),

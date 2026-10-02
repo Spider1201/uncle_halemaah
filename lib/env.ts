@@ -8,6 +8,7 @@ const envSchema = z.object({
   MAILGUN_API_KEY: z.string().min(1).optional(),
   MAILGUN_DOMAIN: z.string().min(1).optional(),
   MAILGUN_FROM: z.string().min(1).optional(),
+  MAILGUN_API_BASE_URL: z.string().url().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 

@@ -15,7 +15,7 @@ const servicePrices: OrderServicePrice[] = [
 function makeDependencies(overrides: {
   userId?: string | null;
   services?: OrderServicePrice[];
-  sendConfirmationEmail?: (message: { to: string; customerName: string | null; order: import("../lib/email/mailgun").ConfirmationOrder }) => Promise<void>;
+  sendConfirmationEmail?: (message: { to: string; order: import("../lib/email/mailgun").ConfirmationOrder }) => Promise<void>;
 } = {}) {
   const savedOrders: Array<{ order: NewOrderRecord; items: NewOrderItemRecord[] }> = [];
   const dependencies = {
@@ -32,6 +32,7 @@ function makeDependencies(overrides: {
       if (!saved) return null;
       return {
         orderNumber: saved.order.orderNumber,
+        customerName: saved.order.customerName,
         fulfillmentType: saved.order.fulfillmentType,
         preferredDate: saved.order.preferredDate,
         customerPhone: saved.order.customerPhone,
@@ -61,6 +62,7 @@ function post(body: unknown) {
 
 const validPickupOrder = {
   items: [{ serviceSlug: "shirt-care", quantity: 2 }],
+  customerName: "Google Customer",
   fulfillmentType: "pickup",
   customerPhone: "+234 801 234 5678",
   preferredDate: "2026-10-02",
@@ -75,7 +77,7 @@ describe("POST /api/orders", () => {
 
     expect(response.status).toBe(201);
     expect(body).toMatchObject({ orderNumber: "UH-TEST12345", status: "received", subtotalKobo: 360000, totalKobo: 360000 });
-    expect(savedOrders[0].order).toMatchObject({ userId: "user-123", fulfillmentType: "pickup", deliveryAddress: null });
+    expect(savedOrders[0].order).toMatchObject({ userId: "user-123", customerName: "Google Customer", fulfillmentType: "pickup", deliveryAddress: null });
     expect(savedOrders[0].items[0]).toMatchObject({
       serviceId: "service-shirt",
       serviceName: "Shirt Care",
@@ -87,9 +89,9 @@ describe("POST /api/orders", () => {
     expect(dependencies.getSavedOrder).toHaveBeenCalledWith("order-123", "user-123");
     expect(dependencies.sendConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({
       to: "google-customer@example.com",
-      customerName: "Google Customer",
       order: expect.objectContaining({
         orderNumber: "UH-TEST12345",
+        customerName: "Google Customer",
         totalKobo: 360000,
         items: [expect.objectContaining({ unitPriceKobo: 180000, quantity: 2 })],
       }),
@@ -134,6 +136,7 @@ describe("POST /api/orders", () => {
   });
 
   it.each([
+    { ...validPickupOrder, customerName: " " },
     { ...validPickupOrder, items: [] },
     { ...validPickupOrder, items: [{ serviceSlug: "shirt-care", quantity: 0 }] },
     { ...validPickupOrder, preferredDate: "2026-10-01" },

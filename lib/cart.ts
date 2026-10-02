@@ -24,8 +24,8 @@ export function removeCartItem(items: CartItem[], serviceSlug: string): CartItem
 
 export function calculateCartSubtotal<T extends { price: number }>(
   items: CartItem[],
-  services: readonly (T & { id: string })[],
+  services: readonly (T & { slug: string })[],
 ): number {
-  const servicesBySlug = new Map(services.map((service) => [service.id, service]));
+  const servicesBySlug = new Map(services.map((service) => [service.slug, service]));
   return items.reduce((total, item) => total + (servicesBySlug.get(item.serviceSlug)?.price ?? 0) * item.quantity, 0);
 }

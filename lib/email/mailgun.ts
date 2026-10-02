@@ -6,10 +6,18 @@ const mailgunEnvSchema = z.object({
   MAILGUN_API_KEY: z.string().min(1),
   MAILGUN_DOMAIN: z.string().min(1),
   MAILGUN_FROM: z.string().min(1),
+  MAILGUN_API_BASE_URL: z.string().url().optional(),
 });
+
+export const DEFAULT_MAILGUN_API_BASE_URL = "https://api.mailgun.net";
+
+export function getMailgunApiBaseUrl(value: string | undefined): string {
+  return (value || DEFAULT_MAILGUN_API_BASE_URL).replace(/\/+$/, "");
+}
 
 export type ConfirmationOrder = {
   orderNumber: string;
+  customerName: string;
   fulfillmentType: "pickup" | "delivery";
   preferredDate: string;
   customerPhone: string;
@@ -27,7 +35,6 @@ export type ConfirmationOrder = {
 
 export type OrderConfirmationEmail = {
   to: string;
-  customerName: string | null;
   order: ConfirmationOrder;
 };
 
@@ -41,7 +48,7 @@ function escapeHtml(value: string): string {
   })[character]!);
 }
 
-function buildPlainText({ customerName, order }: OrderConfirmationEmail): string {
+function buildPlainText({ order }: OrderConfirmationEmail): string {
   const itemLines = order.items.map((item) =>
     `${item.serviceName} - ${item.quantity} x ${formatNaira(item.unitPriceKobo / 100)} (${item.unitLabel}): ${formatNaira(item.lineTotalKobo / 100)}`,
   );
@@ -55,7 +62,7 @@ function buildPlainText({ customerName, order }: OrderConfirmationEmail): string
   ];
 
   return [
-    `Hello ${customerName || "there"},`,
+    `Hello ${order.customerName},`,
     "",
     "Uncle Halemaah has received your order request.",
     `Order number: ${order.orderNumber}`,
@@ -72,7 +79,7 @@ function buildPlainText({ customerName, order }: OrderConfirmationEmail): string
   ].join("\n");
 }
 
-function buildHtml({ customerName, order }: OrderConfirmationEmail): string {
+function buildHtml({ order }: OrderConfirmationEmail): string {
   const itemRows = order.items.map((item) => `
     <tr>
       <td style="padding:12px 8px;border-bottom:1px solid #e7e9e4;color:#20382d;">
@@ -99,7 +106,7 @@ function buildHtml({ customerName, order }: OrderConfirmationEmail): string {
         <h1 style="margin:0;font-size:24px;line-height:1.25;">Uncle Halemaah</h1>
       </header>
       <main style="padding:24px 20px;">
-        <p style="margin:0 0 8px;">Hello ${escapeHtml(customerName || "there")},</p>
+        <p style="margin:0 0 8px;">Hello ${escapeHtml(order.customerName)},</p>
         <p style="margin:0 0 20px;color:#64716b;line-height:1.6;">Thanks for choosing us. We have received your request and the shop will review your preferred date.</p>
         <p style="margin:0 0 12px;font-weight:bold;">Order ${escapeHtml(order.orderNumber)}</p>
         <table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px;">
@@ -131,7 +138,7 @@ export async function sendOrderConfirmationEmail(
   const config = mailgunEnvSchema.safeParse(process.env);
   if (!config.success) throw new Error("Mailgun configuration is missing or invalid.");
 
-  const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM } = config.data;
+  const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_API_BASE_URL } = config.data;
   const form = new FormData();
   form.set("from", MAILGUN_FROM);
   form.set("to", message.to);
@@ -139,7 +146,8 @@ export async function sendOrderConfirmationEmail(
   form.set("text", buildPlainText(message));
   form.set("html", buildHtml(message));
 
-  const response = await fetcher(`https://api.mailgun.net/v3/${encodeURIComponent(MAILGUN_DOMAIN)}/messages`, {
+  const apiBaseUrl = getMailgunApiBaseUrl(MAILGUN_API_BASE_URL);
+  const response = await fetcher(`${apiBaseUrl}/v3/${encodeURIComponent(MAILGUN_DOMAIN)}/messages`, {
     method: "POST",
     headers: {
       authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,

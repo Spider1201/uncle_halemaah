@@ -11,7 +11,7 @@ export const POST = createOrderPostHandler({
     const session = await auth();
     const user = session?.user;
     if (!user?.id) return null;
-    return { userId: user.id, email: user.email ?? null, name: user.name ?? null };
+    return { userId: user.id, email: user.email ?? null };
   },
   getActiveServices: async (slugs) => db
     .select({
@@ -39,6 +39,7 @@ export const POST = createOrderPostHandler({
       .where(eq(orderItems.orderId, savedOrder.id));
     return {
       orderNumber: savedOrder.orderNumber,
+      customerName: savedOrder.customerName,
       fulfillmentType: savedOrder.fulfillmentType,
       preferredDate: savedOrder.preferredDate,
       customerPhone: savedOrder.customerPhone,

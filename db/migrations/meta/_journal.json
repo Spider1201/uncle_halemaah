@@ -15,6 +15,20 @@
       "when": 1790897436289,
       "tag": "0001_order-default-ids",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790906627833,
+      "tag": "0002_order-customer-name",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790906783634,
+      "tag": "0003_service-catalog-badge",
+      "breakpoints": true
     }
   ]
 }

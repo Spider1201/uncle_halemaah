@@ -1,15 +1,26 @@
 export type ServiceItem = {
-  id: string;
+  slug: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
   unit: string;
-  badge: string;
+  badge: string | null;
 };
 
-export const SERVICE_CATALOG: ServiceItem[] = [
+export type ServiceCatalogRow = {
+  slug: string;
+  name: string;
+  description: string | null;
+  unitLabel: string;
+  priceKobo: number;
+  badge: string | null;
+};
+
+export const CATALOG_UNAVAILABLE_MESSAGE = "Our services are temporarily unavailable. Please try again shortly.";
+
+export const INITIAL_SERVICE_CATALOG: ServiceItem[] = [
   {
-    id: "shirt-care",
+    slug: "shirt-care",
     name: "Shirt Care",
     description: "Fresh pressing and stain treatment for everyday shirts.",
     price: 1800,
@@ -17,7 +28,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Best seller",
   },
   {
-    id: "suit-pressing",
+    slug: "suit-pressing",
     name: "Suit Pressing",
     description: "Sharp finish for suits, jackets, and formal separates.",
     price: 4500,
@@ -25,7 +36,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Premium",
   },
   {
-    id: "dress-gown",
+    slug: "dress-gown",
     name: "Dress & Gown",
     description: "Gentle fabric care for occasion wear and elegant pieces.",
     price: 3200,
@@ -33,7 +44,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Elegant care",
   },
   {
-    id: "trouser-denim",
+    slug: "trouser-denim",
     name: "Trouser & Denim",
     description: "Deep clean and reshaping for denim and everyday trousers.",
     price: 1600,
@@ -41,7 +52,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Everyday",
   },
   {
-    id: "wedding-attire",
+    slug: "wedding-attire",
     name: "Wedding Attire",
     description: "Delicate handling for gowns, aso-ebi, and special-event pieces.",
     price: 8000,
@@ -49,7 +60,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Event ready",
   },
   {
-    id: "leather-suede",
+    slug: "leather-suede",
     name: "Leather & Suede",
     description: "Specialist cleaning and conditioning for luxury materials.",
     price: 6500,
@@ -57,7 +68,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Specialist",
   },
   {
-    id: "curtain-care",
+    slug: "curtain-care",
     name: "Curtain Care",
     description: "Refresh curtains and soft furnishings with careful finishing.",
     price: 5000,
@@ -65,7 +76,7 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Home care",
   },
   {
-    id: "family-bundle",
+    slug: "family-bundle",
     name: "Family Laundry Bundle",
     description: "A smart bundle for weekly household essentials and basics.",
     price: 7500,
@@ -73,6 +84,27 @@ export const SERVICE_CATALOG: ServiceItem[] = [
     badge: "Value pack",
   },
 ];
+
+export function mapServiceCatalogRow(row: ServiceCatalogRow): ServiceItem {
+  return {
+    slug: row.slug,
+    name: row.name,
+    description: row.description,
+    price: row.priceKobo / 100,
+    unit: row.unitLabel,
+    badge: row.badge,
+  };
+}
+
+export async function loadServiceCatalog(
+  loadRows: () => Promise<ServiceCatalogRow[]>,
+): Promise<{ services: ServiceItem[]; error: string | null }> {
+  try {
+    return { services: (await loadRows()).map(mapServiceCatalogRow), error: null };
+  } catch {
+    return { services: [], error: CATALOG_UNAVAILABLE_MESSAGE };
+  }
+}
 
 export function formatNaira(value: number): string {
   return new Intl.NumberFormat("en-NG", {

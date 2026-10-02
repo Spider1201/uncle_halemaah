@@ -81,6 +81,10 @@ export default async function OrdersPage() {
 
                 <div className="order-details-grid">
                   <div>
+                    <span className="order-detail-label">Customer</span>
+                    <strong>{order.customerName}</strong>
+                  </div>
+                  <div>
                     <span className="order-detail-label">Collection</span>
                     <strong>{order.fulfillmentType === "pickup" ? "Shop pickup" : "Delivery"}</strong>
                   </div>
