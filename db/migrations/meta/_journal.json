@@ -29,6 +29,13 @@
       "when": 1790906783634,
       "tag": "0003_service-catalog-badge",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791199528089,
+      "tag": "0004_skinny_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

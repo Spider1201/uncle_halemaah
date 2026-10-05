@@ -78,9 +78,10 @@ export type NewOrderItemRecord = {
 };
 
 type CreateOrderDependencies = {
-  getIdentity: () => Promise<{ userId: string; email: string | null } | null>;
+  getIdentity: (request?: Request) => Promise<{ userId: string; email: string | null } | null>;
   getActiveServices: (slugs: string[]) => Promise<OrderServicePrice[]>;
   saveOrder: (order: NewOrderRecord, items: NewOrderItemRecord[]) => Promise<void>;
+  clearCart?: (userId: string) => Promise<void>;
   getSavedOrder: (orderId: string, userId: string) => Promise<ConfirmationOrder | null>;
   sendConfirmationEmail: (message: { to: string; order: ConfirmationOrder }) => Promise<void>;
   getToday?: () => string;
@@ -94,7 +95,7 @@ function jsonError(message: string, status: number, details?: unknown) {
 
 export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
   return async function POST(request: Request): Promise<Response> {
-    const identity = await dependencies.getIdentity();
+    const identity = await dependencies.getIdentity(request);
     if (!identity) return jsonError("Sign in is required to place an order.", 401);
     const { userId } = identity;
 
@@ -162,6 +163,9 @@ export function createOrderPostHandler(dependencies: CreateOrderDependencies) {
     const orderItems = lineItems.map((item) => ({ ...item, orderId }));
 
     await dependencies.saveOrder(order, orderItems);
+    if (dependencies.clearCart) {
+      await dependencies.clearCart(userId);
+    }
 
     if (identity.email) {
       try {

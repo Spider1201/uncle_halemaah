@@ -6,6 +6,7 @@ import {
   type NewOrderRecord,
   type OrderServicePrice,
 } from "../server/orders/create-order-handler";
+import { createListOrdersHandler } from "../server/orders/list-orders-handler";
 
 const servicePrices: OrderServicePrice[] = [
   { id: "service-shirt", slug: "shirt-care", name: "Shirt Care", unitLabel: "Per item", priceKobo: 180000 },
@@ -15,6 +16,7 @@ const servicePrices: OrderServicePrice[] = [
 function makeDependencies(overrides: {
   userId?: string | null;
   services?: OrderServicePrice[];
+  clearCart?: (userId: string) => Promise<void>;
   sendConfirmationEmail?: (message: { to: string; order: import("../lib/email/mailgun").ConfirmationOrder }) => Promise<void>;
 } = {}) {
   const savedOrders: Array<{ order: NewOrderRecord; items: NewOrderItemRecord[] }> = [];
@@ -27,6 +29,7 @@ function makeDependencies(overrides: {
     saveOrder: vi.fn(async (order: NewOrderRecord, items: NewOrderItemRecord[]) => {
       savedOrders.push({ order, items });
     }),
+    clearCart: vi.fn(overrides.clearCart ?? (async () => {})),
     getSavedOrder: vi.fn(async (orderId: string, userId: string) => {
       const saved = savedOrders.find(({ order }) => order.id === orderId && order.userId === userId);
       if (!saved) return null;
@@ -87,6 +90,7 @@ describe("POST /api/orders", () => {
       orderId: "order-123",
     });
     expect(dependencies.getSavedOrder).toHaveBeenCalledWith("order-123", "user-123");
+    expect(dependencies.clearCart).toHaveBeenCalledWith("user-123");
     expect(dependencies.sendConfirmationEmail).toHaveBeenCalledWith(expect.objectContaining({
       to: "google-customer@example.com",
       order: expect.objectContaining({
@@ -161,6 +165,16 @@ describe("POST /api/orders", () => {
     expect(dependencies.saveOrder).not.toHaveBeenCalled();
   });
 
+  it("clears the user's server cart when an order is created", async () => {
+    const clearCart = vi.fn(async () => {});
+    const { handler } = makeDependencies({ clearCart });
+
+    const response = await handler(post(validPickupOrder));
+
+    expect(response.status).toBe(201);
+    expect(clearCart).toHaveBeenCalledWith("user-123");
+  });
+
   it("rejects malformed JSON", async () => {
     const { handler } = makeDependencies();
     const request = new Request("http://localhost/api/orders", { method: "POST", body: "{" });
@@ -168,5 +182,56 @@ describe("POST /api/orders", () => {
     const response = await handler(request);
 
     expect(response.status).toBe(400);
+  });
+});
+
+describe("GET /api/orders", () => {
+  it("rejects unauthenticated requests with 401", async () => {
+    const handler = createListOrdersHandler({
+      getAuthenticatedUser: async () => null,
+    });
+    const response = await handler(new Request("http://localhost/api/orders"));
+    expect(response.status).toBe(401);
+  });
+
+  it("returns user's orders with item snapshots", async () => {
+    const mockOrders = [
+      {
+        id: "order-1",
+        orderNumber: "UH-12345",
+        customerName: "Google Customer",
+        status: "received",
+        fulfillmentType: "pickup",
+        customerPhone: "+234 801 234 5678",
+        preferredDate: "2026-10-05",
+        deliveryAddress: null,
+        customerNote: null,
+        subtotalKobo: 360000,
+        deliveryFeeKobo: 0,
+        totalKobo: 360000,
+        createdAt: "2026-10-05T10:00:00.000Z",
+        items: [
+          {
+            id: "item-1",
+            serviceName: "Shirt Care",
+            unitLabel: "Per item",
+            unitPriceKobo: 180000,
+            quantity: 2,
+            lineTotalKobo: 360000,
+          },
+        ],
+      },
+    ];
+
+    const handler = createListOrdersHandler({
+      getAuthenticatedUser: async () => ({ id: "user-123", email: "customer@example.com", name: "Google Customer" }),
+      listUserOrders: async () => mockOrders,
+    });
+
+    const response = await handler(new Request("http://localhost/api/orders"));
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body.orders).toEqual(mockOrders);
   });
 });

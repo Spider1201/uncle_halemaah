@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addCartItem, calculateCartSubtotal, removeCartItem, setCartQuantity } from "../lib/cart";
+import { addCartItem, calculateCartSubtotal, mergeCartItems, removeCartItem, setCartQuantity } from "../lib/cart";
 
 const services = [
   { slug: "shirt-care", price: 1800 },
@@ -38,5 +38,28 @@ describe("cart operations", () => {
       { serviceSlug: "suit-pressing", quantity: 1 },
       { serviceSlug: "inactive-service", quantity: 1 },
     ], services)).toBe(8100);
+  });
+
+  it("merges local and server cart items and caps at 99", () => {
+    const local = [
+      { serviceSlug: "shirt-care", quantity: 2 },
+      { serviceSlug: "suit-pressing", quantity: 1 },
+    ];
+    const server = [
+      { serviceSlug: "shirt-care", quantity: 3 },
+      { serviceSlug: "duvet-cleaning", quantity: 1 },
+    ];
+    expect(mergeCartItems(local, server)).toEqual([
+      { serviceSlug: "shirt-care", quantity: 5 },
+      { serviceSlug: "duvet-cleaning", quantity: 1 },
+      { serviceSlug: "suit-pressing", quantity: 1 },
+    ]);
+
+    expect(mergeCartItems(
+      [{ serviceSlug: "shirt-care", quantity: 90 }],
+      [{ serviceSlug: "shirt-care", quantity: 20 }],
+    )).toEqual([
+      { serviceSlug: "shirt-care", quantity: 99 },
+    ]);
   });
 });

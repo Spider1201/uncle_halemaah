@@ -1,4 +1,5 @@
 export type ServiceItem = {
+  id: string;
   slug: string;
   name: string;
   description: string | null;
@@ -7,7 +8,10 @@ export type ServiceItem = {
   badge: string | null;
 };
 
+export type InitialServiceItem = Omit<ServiceItem, "id">;
+
 export type ServiceCatalogRow = {
+  id: string;
   slug: string;
   name: string;
   description: string | null;
@@ -18,7 +22,7 @@ export type ServiceCatalogRow = {
 
 export const CATALOG_UNAVAILABLE_MESSAGE = "Our services are temporarily unavailable. Please try again shortly.";
 
-export const INITIAL_SERVICE_CATALOG: ServiceItem[] = [
+export const INITIAL_SERVICE_CATALOG: InitialServiceItem[] = [
   {
     slug: "shirt-care",
     name: "Shirt Care",
@@ -87,6 +91,7 @@ export const INITIAL_SERVICE_CATALOG: ServiceItem[] = [
 
 export function mapServiceCatalogRow(row: ServiceCatalogRow): ServiceItem {
   return {
+    id: row.id,
     slug: row.slug,
     name: row.name,
     description: row.description,

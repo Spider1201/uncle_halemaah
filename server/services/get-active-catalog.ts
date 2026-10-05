@@ -8,6 +8,7 @@ export async function getActiveServiceCatalogRows(): Promise<ServiceCatalogRow[]
   ]);
 
   return db.select({
+    id: services.id,
     slug: services.slug,
     name: services.name,
     description: services.description,

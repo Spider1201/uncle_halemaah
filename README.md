@@ -15,7 +15,7 @@ This repository is for the Uncle Halemaah dry cleaning website described in the 
 
 ## Project status
 
-The initial storefront catalog is implemented; the remaining product flows are still to be built according to the PRD and project guidance in AGENTS.md.
+The storefront, authentication, server-side cart, checkout/order flows, and mobile token-auth endpoints are implemented in the current worktree. Database-backed behavior still requires the configured Neon database and outstanding migrations to be applied.
 
 ## Development rules
 
@@ -29,6 +29,23 @@ The initial storefront catalog is implemented; the remaining product flows are s
 ## Session progress log
 
 Update this section at the end of every session. The latest session should be at the top.
+
+### Session: 2026-10-05 (test/build and mobile auth hardening)
+
+- Status: The requested test and production-build checks pass; no commit or push was made.
+- Completed:
+  - Confirmed Vitest resolves the `@` alias to the project root using `fileURLToPath`; the services handler is in `server/services/get-services-handler.ts`, its API route exports only `GET`, and service tests exercise the server handler.
+  - Checked every `app/api/**/route.ts`; each exports only HTTP methods, with no helper exports.
+  - Moved mobile redirect helpers from the Next.js page module into `lib/mobile-auth/redirect.ts`, keeping the page free of unsupported named exports and letting unit tests import the helpers without loading the database.
+  - Confirmed authorization codes and bearer tokens are SHA-256 hashed before persistence. Mobile codes expire after two minutes, and the atomic consume update now also checks expiry so an expired code cannot be exchanged in a race.
+  - Restricted mobile-login redirects to the `unclehalemaah://` and `exp://` prefixes; added coverage for the consume-time expiry edge.
+- Validation:
+  - Initial `npm test` failed because importing the page loaded database environment validation; resolved by moving the pure helpers out of the page module.
+  - Initial `npm run build` rejected the page's named helper export; resolved by removing it.
+  - Final `npm test`: 10 files and 69 tests passed.
+  - Final `npm run build`: passed. Next.js still warns that it inferred the parent workspace root because another lockfile exists outside the project.
+- Next step:
+  - Apply the outstanding database migrations and verify the mobile flow against a configured database and identity-provider setup. No live database or provider operation was performed in this session.
 
 ### Session: 2026-10-02 (checkout name, DB catalog, Mailgun region)
 
